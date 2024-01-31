@@ -25,8 +25,7 @@
 
 let fast_fib (n : int) : int =
   let rec helper_fib n pp p =
-    if n = 1 || n = 0 then p
+    if n = 0 then p
     else helper_fib (n - 1) p (pp + p)
   in helper_fib n 0 1
 
-let _ = print_int(fast_fib 4)

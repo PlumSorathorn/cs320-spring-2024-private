@@ -16,5 +16,18 @@
 
  *)
 
+
+let rec inner i j n = 
+  if j > i then 0
+  else if (i * i * i) + (j * j * j) = n then
+    1 + inner i (j + 1) n
+  else inner i (j + 1) n
+
 let taxicab (n : int) : int =
-  assert false (* REMOVE THIS LINE AND FILL IN YOUR SOLUTION *)
+  let rec outer i n =
+    if i * i * i > n then 0
+    else inner i 1 n + outer (i + 1) n
+  in outer 1 n
+
+
+let () = print_int(taxicab 4104); print_newline ();;

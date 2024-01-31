@@ -29,5 +29,4 @@ let string_rev (s : string) : string =
       reverse (rev_s ^ String.sub s i 1) (i - 1) 
   in
   reverse "" (String.length s - 1);;
-
-let _ = print_endline(string_rev "12345");;
+  
