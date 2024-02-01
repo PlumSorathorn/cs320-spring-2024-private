@@ -47,7 +47,7 @@ let rec split (s : string) (min_width : int) (max_width : int) (i : int) : strin
     if i >= length then ""
     else (* first determine the width of the current line *)
       let current_width = 
-        if min_width <> 0 && length mod min_width = 0 && length mod max_width < min_width && length mod max_width <> 0 && (length - i) <= min_width then min_width
+        if min_width <> 0 && length mod min_width = 0 && length mod max_width < min_width && length mod max_width <> 0 && countdown length max_width min_width 0 = 0 then min_width
         else if countdown length max_width min_width 0 <> 0 && length - i > min_width then (max_width - countdown length max_width min_width 0)
         else if i + max_width <= length then max_width
         else (length - i) in
@@ -64,4 +64,7 @@ let block_text (s : string) (min_width : int) (max_width : int) : string =
   else s;;
   
   let () = print_string (block_text "ABCDEFGHIJKLM" 3 12); print_newline (); print_newline ();;
-
+  print_string (block_text "ABCDEFGHIJ" 0 3); print_newline (); print_newline ();;
+  print_string (block_text "ABCDEFGHIJ" 2 3); print_newline (); print_newline ();;
+  print_string (block_text "ABCDEFGHIJ" 0 4); print_newline (); print_newline ();;
+  print_string (block_text "ABCDEFGHIJ" 3 4); print_newline (); print_newline ();;
