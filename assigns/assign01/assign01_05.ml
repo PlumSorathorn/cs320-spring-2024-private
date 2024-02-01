@@ -55,7 +55,7 @@ let rec split (s : string) (min_width : int) (max_width : int) (i : int) : strin
         split s min_width max_width (i + (min_width - current_width));;
 
 let block_text (s : string) (min_width : int) (max_width : int) : string =
-  if max_width <= 0 then ""
+  if max_width <= 0 || String.length s <= 0 then ""
   else if min_width > max_width then split s 0 max_width 0
   else if String.length s > min_width then split s min_width max_width 0 (* test if it is actually more than the min_width *)
   else s;;
