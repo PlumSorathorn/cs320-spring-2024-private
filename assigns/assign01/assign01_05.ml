@@ -38,7 +38,7 @@
  *)
 
 let rec countdown (len : int)(max : int)(min : int)(k : int) : int =
-  if k > len then 0
+  if k > min then 0
   else if len - (max - k) = min then k
   else countdown len max min (k + 1);;
 
