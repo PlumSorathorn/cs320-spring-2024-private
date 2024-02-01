@@ -42,18 +42,22 @@ let length = String.length s in
   if i >= length then
     ""
   else (* first determine the width of the current line *)
-    let current_width = if min_width <> 0 && length mod min_width = 0 then min_width else if i + max_width <= length then max_width else length - i in 
+    let current_width = 
+      if min_width <> 0 && length mod min_width = 0 && length mod max_width < min_width then min_width 
+      else if i + max_width <= length then max_width 
+      else (length - i) in 
     let current_line = String.sub s i current_width in (* stores the sub string with the necessary width *)
     if i + current_width < length then (* check for bounds, if it is within bounds, split lines *)
       current_line ^ "\n" ^ split s min_width max_width (i + current_width)
-    else if current_width >= min_width && min_width <> 0 then (* return the remaining letters if min width != 0 *)
-      (String.sub s (i + 1) (current_width - 1))
-    else if current_width >= min_width && min_width = 0 then (* return the remaining letters if min width == 0 *)
-      current_line
+    else if current_width >= min_width then current_line (* return remaining characters *)
+    else if (length - i) <= min_width then String.sub s i length (* if impossible, return last letters anyway *)
     else (* else continue recursion *)
-      split s min_width max_width (i - (min_width - current_width));;
+      split s min_width max_width (i + (min_width - current_width));;
 
 let block_text (s : string) (min_width : int) (max_width : int) : string =
   split s min_width max_width 0;;
 
-let () = print_string(block_text "ABCDEFGHIJ" 3 4); print_newline();
+let () = print_string(block_text "ABCDEFGHIJ" 0 3); print_newline(); print_newline();
+print_string(block_text "ABCDEFGHIJ" 2 3); print_newline(); print_newline();
+print_string(block_text "ABCDEFGHIJ" 0 4); print_newline(); print_newline();
+print_string(block_text "ABCDEFGHIJ" 3 4); print_newline(); print_newline();
