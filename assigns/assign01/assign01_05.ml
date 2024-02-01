@@ -50,19 +50,15 @@ let length = String.length s in
     if i + current_width < length then (* check for bounds, if it is within bounds, split lines *)
       current_line ^ "\n" ^ split s min_width max_width (i + current_width)
     else if current_width >= min_width then current_line (* return remaining characters *)
-    else if (length - i) <= min_width then String.sub s i length (* if impossible, return last letters anyway *)
+    else if (length - i) <= min_width then current_line (* if impossible, return last letters anyway *)
     else (* else continue recursion *)
       split s min_width max_width (i + (min_width - current_width));;
 
 let block_text (s : string) (min_width : int) (max_width : int) : string =
-  if String.length s > min_width then split s min_width max_width 0 (* test if it is actually more than the min_width *)
+  if min_width > max_width then s
+  else if String.length s > min_width then split s min_width max_width 0 (* test if it is actually more than the min_width *)
   else s;;
   
 
-let () = print_string (block_text "ABCDEFGHIJ" 1 5); print_newline (); print_newline ();
-print_string (block_text "ABCDEFGHIJ" 2 5); print_newline (); print_newline ();
-print_string (block_text "ABCDEFGHIJ" 3 5); print_newline (); print_newline ();
-print_string (block_text "ABCDEFGHIJ" 0 10); print_newline (); print_newline ();
-print_string (block_text "ABCDEF" 2 2); print_newline (); print_newline ();
-print_string (block_text "ABCDEF" 1 1); print_newline (); print_newline ();
-print_string (block_text "ABCDEF" 0 3); print_newline (); print_newline ();
+let () = 
+  print_string (block_text "ABCDEFG" 4 6); print_newline (); print_newline ();
