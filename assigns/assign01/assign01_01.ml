@@ -23,9 +23,9 @@ let _ = assert (string_rev "noon" = "noon")
 
 let string_rev (s : string) : string = 
   let rec reverse (rev_s : string) (i : int)  : string =
-    if i < 0 then
+    if i < 0 then (*base case, return rev_s*)
       rev_s
-    else
+    else (*incrementally reverse string by one character*)
       reverse (rev_s ^ String.sub s i 1) (i - 1) 
   in
   reverse "" (String.length s - 1);;

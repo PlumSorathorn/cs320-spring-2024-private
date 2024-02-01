@@ -25,7 +25,7 @@
 
 let fast_fib (n : int) : int =
   let rec helper_fib n pp p =
-    if n = 0 then p
-    else helper_fib (n - 1) p (pp + p)
+    if n = 0 then p (* if 0 then return p *)
+    else helper_fib (n - 1) p (pp + p) (* else continue recusion *)
   in helper_fib n 0 1
 

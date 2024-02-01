@@ -17,17 +17,15 @@
  *)
 
 
-let rec inner i j n = 
+let rec inner i j n = (* inner loop to both loop the 2nd number and check for the taxicab number *)
   if j > i then 0
   else if (i * i * i) + (j * j * j) = n then
     1 + inner i (j + 1) n
   else inner i (j + 1) n
 
-let taxicab (n : int) : int =
+let taxicab (n : int) : int = (* outer loop that calls the inner loop *)
   let rec outer i n =
     if i * i * i > n then 0
     else inner i 1 n + outer (i + 1) n
   in outer 1 n
 
-
-let () = print_int(taxicab 4104); print_newline ();;

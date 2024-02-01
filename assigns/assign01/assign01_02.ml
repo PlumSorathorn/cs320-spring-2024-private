@@ -16,9 +16,9 @@
 
 let is_perfect (n : int) : bool =
   let rec divisors (div : int) : int =
-    if div = 1 then 1
-    else if n mod div = 0 && n <> div then div + divisors(div - 1)
-    else divisors(div - 1)
+    if div = 1 then 1 (* if divisor is 1 then return 1 *)
+    else if n mod div = 0 && n <> div then div + divisors(div - 1) (* check if the current number is a divisor, if yes add it *) 
+    else divisors(div - 1) (* else continue recursion *)
   in if divisors (n) = n then true else false;;
 
 
