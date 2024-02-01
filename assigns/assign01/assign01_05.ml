@@ -55,7 +55,9 @@ let length = String.length s in
       split s min_width max_width (i + (min_width - current_width));;
 
 let block_text (s : string) (min_width : int) (max_width : int) : string =
-  split s min_width max_width 0;;
+  if String.length s > min_width then split s min_width max_width 0 (* test if it is actually more than the min_width *)
+  else s
+  
 
 let () = print_string(block_text "ABCDEFGHIJ" 0 3); print_newline(); print_newline();
 print_string(block_text "ABCDEFGHIJ" 2 3); print_newline(); print_newline();
