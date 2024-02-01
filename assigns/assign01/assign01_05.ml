@@ -55,14 +55,10 @@ let rec split (s : string) (min_width : int) (max_width : int) (i : int) : strin
         split s min_width max_width (i + (min_width - current_width));;
 
 let block_text (s : string) (min_width : int) (max_width : int) : string =
-  if min_width > max_width then split s 0 max_width 0
+  if max_width <= 0 then ""
+  else if min_width > max_width then split s 0 max_width 0
   else if String.length s > min_width then split s min_width max_width 0 (* test if it is actually more than the min_width *)
   else s;;
   
 
-let () = 
-  print_string (block_text "ABCDEFGHIJ" 6 5); print_newline (); print_newline ();
-  print_string (block_text "ABCDEFGHIJ" 6 7); print_newline (); print_newline ();
-  print_string (block_text "ABCDEFGHIJ" 7 8); print_newline (); print_newline ();
-  print_string (block_text "ABCDEFGHIJ" 2 5); print_newline (); print_newline ();
 
