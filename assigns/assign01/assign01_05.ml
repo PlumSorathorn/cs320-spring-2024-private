@@ -44,23 +44,20 @@ let rec split (s : string) (min_width : int) (max_width : int) (i : int) : strin
     if i >= length then ""
     else (* first determine the width of the current line *)
       let current_width = 
-        let rec calc_width (k : int)=
-          if max_width - k = min_width then min_width
-          else if min_width <> 0 && length mod min_width = 0 && length mod max_width < min_width && length mod max_width <> 0 && length - i <= min_width then min_width 
-          else if i + (max_width - k) <= length && (length - min_width = max_width - k) then (max_width - k)
-          else calc_width (k + 1) in calc_width(0)
-        in let current_line = String.sub s i current_width in (* stores the sub string with the necessary width *)
-          if i + current_width < length then (* check for bounds, if it is within bounds, split lines *)
-            current_line ^ "\n" ^ split s min_width max_width (i + current_width)
-          else if current_width >= min_width then current_line (* return remaining characters *)
-          else if (length - i) <= min_width then current_line (* if impossible, return last letters anyway *) 
-          else split s min_width max_width (i + (min_width - current_width));; (* else continue recursion *)
-          
+        if min_width <> 0 && length mod min_width = 0 && length mod max_width < min_width && length mod max_width <> 0 then min_width
+        else if i + max_width <= length then max_width 
+        else (length - i) in
+      let current_line = String.sub s i current_width in (* stores the sub string with the necessary width *)
+        if i + current_width < length then current_line ^ "\n" ^ split s min_width max_width (i + current_width)
+        else if current_width >= min_width then current_line (* return remaining characters *)
+        else if (length - i) <= min_width then current_line (* if impossible, return last letters anyway *)
+        else split s min_width max_width (i + (min_width - current_width));;
+
 let block_text (s : string) (min_width : int) (max_width : int) : string =
   if max_width <= 0 || String.length s <= 0 then ""
   else if min_width > max_width then split s 0 max_width 0
   else if String.length s > min_width then split s min_width max_width 0 (* test if it is actually more than the min_width *)
   else s;;
   
-  let () = print_string (block_text "ABCDEFGHIJ" 2 9); print_newline (); print_newline ();;
+  let () = print_string (block_text "ABCDEFGHIJ" 0 2); print_newline (); print_newline ();;
 
