@@ -76,7 +76,7 @@ let update_recent (u : user) (time : int) (stale : int) : user =
     | [] -> mk (rest_posts @ u.old_posts) rem_posts
     | p :: rest -> 
       (* check if stale *)
-      if p.timestamp < stale && p.timestamp <= t then post_concat (rest_posts @ [p]) (rest) t s rem_posts
+      if p.timestamp <= (t - stale) then post_concat (rest_posts @ [p]) (rest) t s rem_posts
       else post_concat (rest_posts) (rest) t s (rem_posts @ [p])
   in post_concat [] (u.recent_posts) time stale [];;
 
