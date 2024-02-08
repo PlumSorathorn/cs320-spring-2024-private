@@ -30,4 +30,7 @@ type recipe = {
 }
 
 let recs_by_ingrs (l : recipe list) (s : ingr list) : recipe list =
-  assert false (* TODO *)
+  let is_recipe_included r =
+    List.for_all (fun ingr -> List.mem ingr s) r.ingrs
+  in
+  List.filter is_recipe_included l;;
