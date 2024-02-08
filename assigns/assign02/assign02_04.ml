@@ -24,5 +24,22 @@ type temp
   = Hot of int
   | Icy of int
 
-let reduce (l : temp list) : temp list =
-  assert false (* TODO *)
+let rec find_pair l (last_val : temp) (before : temp list) (before_2 : temp list) : temp list =
+  match l with
+  | [] -> [Hot (-99)]
+  | Hot n :: rest -> 
+    if last_val = Icy n then (before_2 @ rest) 
+    else find_pair rest (Hot n) (before @ [Hot n]) (before)
+  | Icy n :: rest -> 
+    if last_val = Hot n then (before_2 @ rest) 
+    else find_pair rest (Icy n) (before @ [Icy n]) (before)
+
+let reduce (l : temp list) : temp list = 
+  let rec loop_pairs (new_list : temp list) : temp list =
+    let deleted_pair = (find_pair new_list (Hot (-99)) [] []) in
+    if deleted_pair = [] then []
+    else if deleted_pair = [Hot (-99)] then new_list
+    else loop_pairs(deleted_pair)
+  in loop_pairs (l);;
+
+
