@@ -29,8 +29,26 @@ type recipe = {
   ingrs : ingr list;
 }
 
+let rec apply lst = function
+  |  [] -> true 
+  | n :: rest -> lst n && apply lst rest;;
+
+let pass_all check =
+  let rec pass acc = function
+    | [] -> List.rev acc
+    | n :: rest -> 
+      if (check (n)) then pass (n :: acc) rest
+      else pass acc rest
+    in pass []
+
 let recs_by_ingrs (l : recipe list) (s : ingr list) : recipe list =
   let is_recipe_included r =
-    List.for_all (fun ingr -> List.mem ingr s) r.ingrs
-  in
-  List.filter is_recipe_included l;;
+    apply (fun ingr -> List.mem ingr s) r.ingrs
+  in pass_all is_recipe_included l;;
+
+
+let r1 = { name = "1" ; ingrs = ["a"; "b"; "d"] }
+let r2 = { name = "2" ; ingrs = ["a"; "c"; "e"] }
+let r3 = { name = "3" ; ingrs = ["b"; "c"] }
+let _ = assert (recs_by_ingrs [r1;r2;r3] ["a";"b";"c";"d"] = [r1;r3])
+let _ = assert (recs_by_ingrs [r1;r2;r3] ["a";"b";"c";"e"] = [r2;r3])
