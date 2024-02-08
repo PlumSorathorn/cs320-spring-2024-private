@@ -54,6 +54,17 @@ type user = {
   recent_posts : post list ;
 }
 
+
+let update_recent (u : user) (time : int) (stale : int) : user =
+  let rec post_concat (rest_posts : post list) (rec_posts : post list) (t : int) (s : int) (rem_posts : post list) : user =
+    match rec_posts with
+    | [] -> {u with old_posts = (rest_posts @ u.old_posts); recent_posts = rem_posts}
+    | p :: rest -> 
+      (* check if stale *)
+      if p.timestamp <= (t - stale) then post_concat (rest_posts @ [p]) (rest) t s rem_posts
+      else post_concat (rest_posts) (rest) t s (rem_posts @ [p])
+  in post_concat [] (u.recent_posts) time stale [];;
+
 let p t = {title="";content="";timestamp=t}
 
 let mk op rp = {
@@ -70,17 +81,8 @@ let mk op rp = {
   recent_posts = rp;
 }
 
-let update_recent (u : user) (time : int) (stale : int) : user =
-  let rec post_concat (rest_posts : post list) (rec_posts : post list) (t : int) (s : int) (rem_posts : post list) : user =
-    match rec_posts with
-    | [] -> mk (rest_posts @ u.old_posts) rem_posts
-    | p :: rest -> 
-      (* check if stale *)
-      if p.timestamp <= (t - stale) then post_concat (rest_posts @ [p]) (rest) t s rem_posts
-      else post_concat (rest_posts) (rest) t s (rem_posts @ [p])
-  in post_concat [] (u.recent_posts) time stale [];;
 
 
-let _ = assert (update_recent (mk [p 0] [p 30;p 20;p 10]) 50 30 = mk [p 20;p 10;p 0] [p 30])
+let _ = assert (update_recent (mk [p 0] [p 40; p 30;p 20;p 10]) 50 30 = mk [p 20;p 10;p 0] [p 40;p 30])
 
 
