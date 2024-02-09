@@ -46,5 +46,37 @@ type point = {
   y : int ;
 }
 
-let rec all_paths (len : int) (stp : point) (endp : point) : (dir * int) list list =
-  assert false (* TODO *)
+let rec dist x y =
+  if x > y then [] else x :: dist (x + 1) y
+
+let rec append_lists lists = match lists with
+  | [] -> []
+  | n :: rest -> n @ append_lists rest
+
+let rec transform func list = match list with
+  | [] -> []
+  | n :: rest -> (func n) :: (transform func rest)
+
+let move_point cur_point dir n = match dir with
+  | N -> { cur_point with y = cur_point.y + n }
+  | S -> { cur_point with y = cur_point.y - n }
+  | E -> { cur_point with x = cur_point.x + n }
+  | W -> { cur_point with x = cur_point.x - n }
+
+let all_paths len stp endp =
+  let rec dfs stp endp len path last_dir =
+    if len = 0 then
+      if stp = endp then [List.rev path] else []
+    else
+      append_lists (transform (fun dir ->
+        if Some dir = last_dir then []
+        else
+          append_lists (transform (fun steps ->
+            if steps > len then []
+            else
+              let next_point = move_point stp dir steps in
+              let new_path = (dir, steps) :: path in
+              dfs next_point endp (len - steps) new_path (Some dir)
+          ) (dist 1 len))
+      ) [N; S; E; W])
+    in dfs stp endp len [] None
