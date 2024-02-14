@@ -42,7 +42,7 @@ type 'a forklist
   | Cons of 'a * 'a forklist
   | Fork of 'a * 'a forklist * 'a forklist
 
-let rec separate_cons_fork (f : 'a forklist) : ('a forklist * 'a forklist) =
+let rec separate_cons_fork (f : int forklist) : (int forklist * int forklist) =
   match f with
   | Nil -> (Nil, Nil)
   | Cons (x, xs) ->
@@ -53,8 +53,8 @@ let rec separate_cons_fork (f : 'a forklist) : ('a forklist * 'a forklist) =
     let rxs_cons, rxs_fork = separate_cons_fork rxs in
     (Cons (x, lxs_cons), Fork (x, rxs_cons, rxs_fork));;
 
-let delay_cons (f : 'a forklist) : 'a forklist = 
-  let rec merge_cons_fork (f : 'a forklist) : 'a forklist =
+let delay_cons (f : int forklist) : int forklist = 
+  let rec merge_cons_fork (f : int forklist) : int forklist =
     let cons_part, fork_part = separate_cons_fork f in
     match cons_part, fork_part with
     | Nil, _ -> Nil
