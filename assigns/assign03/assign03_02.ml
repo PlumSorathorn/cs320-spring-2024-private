@@ -43,4 +43,24 @@ type 'a forklist
   | Fork of 'a * 'a forklist * 'a forklist
 
 let delay_cons (f : int forklist) : int forklist =
-  assert false (* TODO *)
+  let rec sorter (f : 'a forklist) : 'a forklist =
+    match f with
+    | Nil -> Nil
+    | Cons (x, Fork (y, lxs, rxs)) -> Fork (y, Cons (x, sorter lxs), sorter rxs)
+    | Cons (x, xs) -> Cons(x, sorter xs)
+    | Fork (x, lxs, rxs) ->
+      let lxs' = sorter lxs in
+      let rxs' = sorter rxs in
+      Fork (x, lxs', rxs')
+    in sorter f;;
+
+
+let test_case_1 () =
+  let f = Cons (2, Fork (4, Cons (3, Nil), Cons (5, Nil))) in
+  let g = Fork (4, Cons (2, Cons (3, Nil)), Cons (5, Nil)) in
+  assert (delay_cons f = g)
+
+let test_case_2 () =
+  let f = Fork (4, Cons (2, Fork(3, Cons(5, Nil), Cons(6, Nil))), Cons(1, Nil)) in
+  let g = Fork (4, Fork (3, Cons (2, Nil), Cons (5, Nil)), Cons (1, Nil)) in
+  assert (delay_cons f = g)

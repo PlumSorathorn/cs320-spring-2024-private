@@ -4,7 +4,7 @@
    concatenation instead of cons.  It has a constructor for the empty
    list (Nil), a single element list (Single) and the concatentation
    of two lists (Concat).
-
+  
    Implement a function `sort` which given
 
      l : a `concatlist`
@@ -17,7 +17,6 @@
    Example:
    let l = Concat (Concat (Single 3, Single 2), Concat (Single 1, Single 10))
    let _ = assert (sort l = [1;2;3;10])
-
 *)
 
 type 'a concatlist
@@ -26,4 +25,9 @@ type 'a concatlist
   | Concat of 'a concatlist * 'a concatlist
 
 let sort (l : 'a concatlist) : 'a list =
-  assert false (* TODO *)
+  let rec loop_sort l acc =
+    match l with 
+    | Nil -> acc
+    | Single n -> assert false
+    | Concat (a, b) -> (loop_sort a acc) @ (loop_sort b acc)
+  in loop_sort l []
