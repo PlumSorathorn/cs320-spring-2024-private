@@ -46,15 +46,16 @@ type 'a forklist
 
 let delay_cons (f : int forklist) : int forklist =
   let rec traverse f =
-  match f with
-  | Nil -> Nil
-  | Cons (x, Nil) -> Cons (x, Nil) 
-  | Cons (x, (Cons (_, _) as xs)) -> Cons (x, traverse xs) 
-  | Cons (x, (Fork (y, left, right))) ->
-      if x < y then Fork (y, traverse (Cons (x, left)), traverse right)
-      else Fork (y, traverse left, traverse (Cons (x, right)))
-  | Fork (x, left, right) -> Fork (x, traverse left, traverse right) 
-    in traverse f
+    let rec insert x fl = match fl with
+      | Nil -> Cons (x, Nil)
+      | Cons (y, ys) -> if x < y then Cons (x, fl) else Cons (y, insert x ys)
+      | Fork (y, ly, ry) -> if x < y then Fork (y, insert x ly, ry) else Fork (y, ly, insert x ry)
+    in
+    match f with
+    | Nil -> Nil
+    | Cons (x, xs) -> insert x (traverse xs)
+    | Fork (x, l, r) -> Fork (x, traverse l, traverse r)
+  in traverse f
 
 let f = Cons (2, Fork(4, Cons(3, Nil), Cons (5, Nil)))
 let g = Fork (4, Cons (2, Cons (3, Nil)), Cons(5, Nil))
