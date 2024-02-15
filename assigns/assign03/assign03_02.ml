@@ -37,42 +37,25 @@
 
 *)
 
+
 type 'a forklist
   = Nil
   | Cons of 'a * 'a forklist
   | Fork of 'a * 'a forklist * 'a forklist
 
-let rec separate_cons_fork (f : int forklist) : (int forklist * int forklist) =
+
+let delay_cons (f : int forklist) : int forklist =
+  let rec traverse f =
   match f with
-  | Nil -> (Nil, Nil)
-  | Cons (x, xs) ->
-    let cons_tail, fork_tail = separate_cons_fork xs in
-    (Cons (x, cons_tail), fork_tail)
-  | Fork (x, lxs, rxs) ->
-    let lxs_cons, lxs_fork = separate_cons_fork lxs in
-    let rxs_cons, rxs_fork = separate_cons_fork rxs in
-    (Cons (x, lxs_cons), Fork (x, rxs_cons, rxs_fork));;
+  | Nil -> Nil
+  | Cons (x, Nil) -> Cons (x, Nil) 
+  | Cons (x, (Cons (_, _) as xs)) -> Cons (x, traverse xs) 
+  | Cons (x, (Fork (y, left, right))) ->
+      if x < y then Fork (y, traverse (Cons (x, left)), traverse right)
+      else Fork (y, traverse left, traverse (Cons (x, right)))
+  | Fork (x, left, right) -> Fork (x, traverse left, traverse right) 
+    in traverse f
 
-let delay_cons (f : int forklist) : int forklist = 
-  let rec merge_cons_fork (f : int forklist) : int forklist =
-    let cons_part, fork_part = separate_cons_fork f in
-    match cons_part, fork_part with
-    | Nil, _ -> Nil
-    | _, Nil -> cons_part
-    | _ ->
-      match fork_part with
-      | Nil -> Nil
-      | Cons (x, xs) -> Fork (x, cons_part, xs)
-      | Fork (x, lxs, rxs) -> Fork (x, cons_part, merge_cons_fork rxs)
-    in merge_cons_fork f
-
-
-let test_case_1 () =
-  let f = Cons (2, Fork (4, Cons (3, Nil), Cons (5, Nil))) in
-  let g = Fork (4, Cons (2, Cons (3, Nil)), Cons (5, Nil)) in
-  assert (delay_cons f = g)
-
-let test_case_2 () =
-  let f = Fork (4, Cons (2, Fork(3, Cons(5, Nil), Cons(6, Nil))), Cons(1, Nil)) in
-  let g = Fork (4, Fork (3, Cons (2, Nil), Cons (5, Nil)), Cons (1, Nil)) in
-  assert (delay_cons f = g)
+let f = Cons (2, Fork(4, Cons(3, Nil), Cons (5, Nil)))
+let g = Fork (4, Cons (2, Cons (3, Nil)), Cons(5, Nil))
+let _ = assert (delay_cons f = g)
