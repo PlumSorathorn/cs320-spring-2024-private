@@ -58,28 +58,30 @@ let eval (v : (string * bool) list) (e : bexp) : bool option =
       else if rest <> [] then loop_eval rest (Var x)
       else None
     | (a, b) :: rest, Not x -> 
-      if ((loop_eval vars x) =  None) then None
-      else if ((loop_eval vars x) =  Some true) then Some false
-      else if ((loop_eval vars x) =  Some false) then Some true
-      else None
+      let con = (loop_eval vars x) in
+        if (con =  Some true) then Some false
+        else if (con =  Some false) then Some true
+        else None
     | (a, b) :: rest, And (x, y) -> 
-      if ((loop_eval vars x) =  None) && ((loop_eval vars y) = None) then None
-      else if ((loop_eval vars x) =  Some true) && ((loop_eval vars y) = Some true) then Some true
-      else if ((loop_eval vars x) =  Some false) || ((loop_eval vars y) = Some false) then Some false
-      else None
+      let left_con = (loop_eval vars x) in 
+      let right_con = (loop_eval vars y) in
+        if (left_con =  Some true) && (right_con = Some true) then Some true
+        else if ((left_con =  Some false) &&  (left_con <> None)) || ((right_con = Some false) && (right_con <> None)) then Some false
+        else None
     | (a, b) :: rest, Or (x, y) ->
-      if ((loop_eval vars x) =  None) && ((loop_eval vars y) = None) then None
-      else if ((loop_eval vars x) =  Some true) || ((loop_eval vars y) = Some true) then Some true
-      else if ((loop_eval vars x) =  Some false) && ((loop_eval vars y) = Some false) then Some false
-      else None
+      let left_con = (loop_eval vars x) in 
+      let right_con = (loop_eval vars y) in
+        if ((left_con =  Some true) &&  (left_con <> None)) || ((right_con = Some true) && (right_con <> None)) then Some true
+        else if (left_con =  Some false) && (right_con = Some false) then Some false
+        else None
     | _, _ -> None
   in loop_eval v e;;
 
 
-let v = [("a", true); ("b", false); ("c", true)]
+let v = [("a", true); ("b", false); ("c", false)]
 let e = And (Var "a", Or (Var "b", Var "c"))
-let f = Not (Var "d")
-let _ = assert (eval v e = Some true)
-let _ = assert (eval v f = None)
+let f = And (Not (Var "a"), Or (Var "b", Var "c"))
+let _ = assert (eval v e = Some false)
+let _ = assert (eval v f = Some false)
 
 
