@@ -52,7 +52,6 @@ type bexp =
 let eval (v : (string * bool) list) (e : bexp) : bool option =
   let rec loop_eval vars exp = 
     match vars, exp with
-    | [], _ -> None
     | (a, b) :: rest, Var x -> 
       if a = x && b then Some true 
       else if a = x && not b then Some false
@@ -64,19 +63,23 @@ let eval (v : (string * bool) list) (e : bexp) : bool option =
       else if ((loop_eval vars x) =  Some false) then Some true
       else None
     | (a, b) :: rest, And (x, y) -> 
-      if ((loop_eval vars x) =  None) || ((loop_eval vars y) = None) then None
+      if ((loop_eval vars x) =  None) && ((loop_eval vars y) = None) then None
       else if ((loop_eval vars x) =  Some true) && ((loop_eval vars y) = Some true) then Some true
       else if ((loop_eval vars x) =  Some false) || ((loop_eval vars y) = Some false) then Some false
       else None
     | (a, b) :: rest, Or (x, y) ->
-      if ((loop_eval vars x) =  None) || ((loop_eval vars y) = None) then None
+      if ((loop_eval vars x) =  None) && ((loop_eval vars y) = None) then None
       else if ((loop_eval vars x) =  Some true) || ((loop_eval vars y) = Some true) then Some true
       else if ((loop_eval vars x) =  Some false) && ((loop_eval vars y) = Some false) then Some false
       else None
+    | _, _ -> None
   in loop_eval v e;;
 
 
-let v = [("a", true); ("b", true); ("c", false)]
-let e = Or (And (Var "a", Not (Var "b")), Not (Var "c"))
+let v = [("a", true); ("b", false); ("c", true)]
+let e = And (Var "a", Or (Var "b", Var "c"))
+let f = Not (Var "d")
 let _ = assert (eval v e = Some true)
+let _ = assert (eval v f = None)
+
 
