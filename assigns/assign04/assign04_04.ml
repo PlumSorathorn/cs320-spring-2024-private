@@ -78,11 +78,42 @@
    (* ( 1 + 2x + 3x^2 ) ( 4 + 5x ) = 4 + 13x + 22x^2 + 15x^3 *)
 *)
 
+(* helper funs *)
+
+let rec sub_list len l acc =
+  match l with 
+  | [] -> acc 
+  | n :: rest -> 
+    if len <= 0 then acc
+    else sub_list (len - 1) rest (acc @ [n]);;
+
+
+let rec list_get l i =
+  match l with
+  | [] -> assert false (* didn't find *)
+  | n :: rest -> if i = 0 then n else list_get rest (i - 1);;
+(* helper funs *)
+
+
 let rec map2 (f : 'a -> 'b -> 'c) (l : 'a list) (r : 'b list) : 'c list =
-  assert false (* TODO *)
+  let rec mapping f l r acc = 
+    match l, r with 
+    | [], _ -> acc
+    | _ , [] -> acc 
+    | x :: rest_x, y :: rest_y  -> mapping f rest_x rest_y (acc @ [f x y])
+  in mapping f l r [];;
+
 
 let consecutives (len : int) (l : 'a list) : 'a list list =
-  assert false (* TODO *)
+  let rec cons (len : int) (l : 'a list) (acc : 'a list list) : 'a list list = 
+    if len <= 1 then [[]]
+    else 
+      match l with 
+      | [] -> acc
+      | n :: rest -> 
+        if (List.length ([n] @ rest)) - len <= 0 then acc @ [sub_list len ([n] @ rest) []]
+        else cons len rest (acc @ [sub_list len ([n] @ rest) []])
+  in cons len l []
 
 let list_conv
     (f : 'a list -> 'b list -> 'c)
@@ -91,9 +122,21 @@ let list_conv
   List.map (f l) (consecutives (List.length l) r)
 
 let poly_mult_helper (u : int list) (v : int list) : int =
-  assert false (* TODO *)
+  let rec poly_mult_process i j acc =
+    match i, j with
+    | i, j -> 
+      if i < List.length u && j >= 0 then 
+        let mult = (list_get u i) * (list_get v j) in
+        poly_mult_process (i + 1) (j - 1) (acc + mult)
+      else acc
+  in poly_mult_process 0 (List.length v - 1) 0
 
 let poly_mult (p : int list) (q : int list) : int list =
   let padding = List.init (List.length p - 1) (fun _ -> 0) in
   let padded_q = padding @ q @ padding in
-  list_conv poly_mult_helper p padded_q
+  list_conv poly_mult_helper p padded_q;;
+
+
+
+let _ = assert (poly_mult [1;2;3] [4;5] = [4;13;22;15])
+let _ = assert (poly_mult [4;5] [1;2;3] = [4;13;22;15])

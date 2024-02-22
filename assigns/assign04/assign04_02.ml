@@ -48,6 +48,12 @@
    let _ = assert (walks g2 4 [(p1, -10); (p2, -20); (p3, 8)] = [-6; -24])
    let _ = assert (walks g2 6 [(p1, 5); (p2, 11); (p3, -10)] = [2])
 *)
+
+let rec list_get l i =
+  match l with
+  | [] -> assert false (* didn't find *)
+  | n :: rest -> if i = 0 then n else list_get rest (i - 1);;
+
 let rec pot_paths p start len =
   if len <= 0 then [start]
   else start :: pot_paths p (p start) (len - 1)
@@ -65,7 +71,7 @@ let walks
       let validated_paths paths_starts =
         List.fold_left (fun acc (p, start) ->
           let path = pot_paths p start len in
-          if valid_path g path then (List.nth path (List.length path - 1)) :: acc 
+          if valid_path g path then (list_get path (List.length path - 1)) :: acc 
           else acc
         ) [] paths_starts
       in
