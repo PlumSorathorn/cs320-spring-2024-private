@@ -35,6 +35,7 @@ let apply_cycle (funcs : ('a -> 'a) list) (n : int) (x : 'a) : 'a =
     let og_n = n in
     let rec apply_loop (funcs : ('a -> 'a) list) (n : int) (x : 'a) acc : 'a = 
       match funcs with
+      | [] -> acc
       | i :: rest -> 
         if og_n = n && n <> 0 then 
           apply_loop rest (n - 1) x (i x)
@@ -44,6 +45,5 @@ let apply_cycle (funcs : ('a -> 'a) list) (n : int) (x : 'a) : 'a =
           acc
         else 
           apply_loop rest (n - 1) x (i acc)
-      | _ -> assert false
       in apply_loop og_list n x x;;
 
