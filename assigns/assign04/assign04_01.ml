@@ -28,5 +28,22 @@
    let _ = assert (apply_cycle [f;h;k] 4 5 = 19)
 *)
 
-let apply_cycle (funcs : ('a -> 'a) list) (n : int) (x : 'a) : 'a =
-  assert false (* TODO *)
+let apply_cycle (funcs : ('a -> 'a) list) (n : int) (x : 'a) : 'a = 
+  if n <= 0 then x 
+  else 
+    let og_list = funcs in 
+    let og_n = n in
+    let rec apply_loop (funcs : ('a -> 'a) list) (n : int) (x : 'a) acc : 'a = 
+      match funcs with
+      | i :: rest -> 
+        if og_n = n && n <> 0 then 
+          apply_loop rest (n - 1) x (i x)
+        else if n <> 0 && rest = [] then 
+          apply_loop og_list (n - 1) x (i acc)
+        else if n <= 0 then 
+          acc
+        else 
+          apply_loop rest (n - 1) x (i acc)
+      | _ -> assert false
+      in apply_loop og_list n x x;;
+
