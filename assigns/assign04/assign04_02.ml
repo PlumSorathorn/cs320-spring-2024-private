@@ -49,8 +49,24 @@
    let _ = assert (walks g2 6 [(p1, 5); (p2, 11); (p3, -10)] = [2])
 *)
 
+
+let rec looper g path start len prev : 'a * bool = 
+  if start = prev && len = 0 then start, true
+  else if len <= 0 && (g prev start) then start, true
+  else if start = prev then looper g path (path start) (len - 1) start
+  else if start <> prev && (g prev start) then looper g path (path start) (len - 1) start
+  else start, false
+
 let walks
     (g : 'a -> 'a -> bool)
     (len : int)
     (paths_starts : (('a -> 'a) * 'a) list) : 'a list =
-  assert false (* TODO *)
+    let rec pot_paths (g : 'a -> 'a -> bool) (len : int) (paths_starts : (('a -> 'a) * 'a) list) acc : 'a list = 
+      match paths_starts with
+      | [] -> acc
+      | (path, start) :: rest -> 
+        let valid_path, valid = looper g path start len start in
+        if valid then pot_paths g (len) (rest) (acc @ [valid_path])
+        else pot_paths g (len) (rest) (acc)
+    in pot_paths g len paths_starts [];;
+
