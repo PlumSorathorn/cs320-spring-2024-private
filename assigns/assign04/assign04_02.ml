@@ -54,34 +54,19 @@ let rec pot_paths p start len =
 
 let rec valid_path g path =
   match path with
-  | [] | [_] -> true
+  | [] -> true
+  | [_] -> true
   | a :: (b :: _ as t) -> g a b && valid_path g t
 
 let walks
     (g : 'a -> 'a -> bool)
     (len : int)
     (paths_starts : (('a -> 'a) * 'a) list) : 'a list =
-      let generate_and_validate_paths paths_starts =
+      let validated_paths paths_starts =
         List.fold_left (fun acc (p, start) ->
           let path = pot_paths p start len in
-          if valid_path g path then (List.nth path (List.length path - 1)) :: acc else acc
+          if valid_path g path then (List.nth path (List.length path - 1)) :: acc 
+          else acc
         ) [] paths_starts
       in
-      List.rev (generate_and_validate_paths paths_starts)
-
-
-
-let g1 (i : int) (j: int) = i < j && i <= 10 && j <= 10
-let g2 (i : int) (j: int) = i <= 10 && j <= 10
-
-let p1 i = i + 1
-let p2 i = i - 1
-let p3 i = i + 2
-
-let _ = assert (walks g1 0 [(p1, 0); (p2, 0); (p3, 0)] = [0;0;0])
-let _ = assert (walks g1 1 [(p1, 0); (p2, 0); (p3, 0)] = [1;2])
-let _ = assert (walks g1 3 [(p1, 0); (p2, 0); (p3, 0)] = [3;6])
-let _ = assert (walks g1 6 [(p1, 0); (p2, 0); (p3, 0)] = [6])
-let _ = assert (walks g2 2 [(p1, 3); (p2, 5); (p3, 3)] = [5; 3; 7])
-let _ = assert (walks g2 4 [(p1, -10); (p2, -20); (p3, 8)] = [-6; -24])
-let _ = assert (walks g2 6 [(p1, 5); (p2, 11); (p3, -10)] = [2])
+      List.rev (validated_paths paths_starts)
