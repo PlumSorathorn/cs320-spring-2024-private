@@ -107,6 +107,7 @@ let rec map2 (f : 'a -> 'b -> 'c) (l : 'a list) (r : 'b list) : 'c list =
 let consecutives (len : int) (l : 'a list) : 'a list list =
   let rec cons (len : int) (l : 'a list) (acc : 'a list list) : 'a list list = 
     if len <= 1 then [[]]
+    else if len > (List.length l) then [l]
     else 
       match l with 
       | [] -> acc
@@ -131,12 +132,12 @@ let poly_mult_helper (u : int list) (v : int list) : int =
       else acc
   in poly_mult_process 0 (List.length v - 1) 0
 
+
 let poly_mult (p : int list) (q : int list) : int list =
   let padding = List.init (List.length p - 1) (fun _ -> 0) in
   let padded_q = padding @ q @ padding in
   list_conv poly_mult_helper p padded_q;;
 
 
-
-let _ = assert (poly_mult [1;2;3] [4;5] = [4;13;22;15])
-let _ = assert (poly_mult [4;5] [1;2;3] = [4;13;22;15])
+  let _ = assert (poly_mult [1;2;3] [4;5] = [4;13;22;15])
+  let _ = assert (poly_mult [4;5] [1;2;3] = [4;13;22;15])
