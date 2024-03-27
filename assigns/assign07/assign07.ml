@@ -132,10 +132,11 @@ let next_token (cs : char list) : (token * char list) option =
         else Some (NtmT (implode(go tl [])), rest) )
      | _ -> None) 
   | '.' :: rest -> Some (PdT, rest)
-  | c :: _ when is_alpha c ->
-    let (term, rest) = span is_alpha css in
-    Some (TmT (implode term), rest)
-  | _ -> None
+  | c :: _ -> 
+    if is_alpha c then
+      let term, rest = span is_alpha css in
+      Some (TmT (implode term), rest)
+    else None
 
 
 let tokenize (s : string) : (token list) option =
@@ -149,6 +150,7 @@ let tokenize (s : string) : (token list) option =
       | None -> None
       | Some ts -> Some (t :: ts)
   in go (explode s)
+
   
 (*
 let _ = assert(next_token (explode "\n ::= q[qpo;laksjd") = Some (EqT, explode " q[qpo;laksjd"))
