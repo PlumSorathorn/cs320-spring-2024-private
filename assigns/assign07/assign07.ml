@@ -105,8 +105,38 @@ type token
   | PdT             (* . *)
   | EOFT            (* end of file *)
 
+
 let next_token (cs : char list) : (token * char list) option =
-  assert false (* TODO *)
+  let rec go css = 
+    let head, rest = span (fun x -> if x = ' ' then false else true) css 
+    in 
+    if head = [] && rest <> [] then go (List.tl rest)
+    else if head = [] && rest = [] then []
+    else if head =  [' '] then go rest
+    else if (is_blank (List.hd head)) then go rest
+    else css
+  in 
+  let css = go cs in
+  match css with
+  | [] -> Some (EOFT, [])
+  | ':' :: ':' :: '=' :: rest -> Some (EqT, rest)
+  | '<' :: _ -> 
+    (match span (fun c -> c <> '>') css with
+     | ('<' :: tl, '>' :: rest) -> (
+        let rec go ls_tl acc = 
+          match ls_tl with 
+          | [] -> List.rev acc
+          | n :: rest -> if is_alpha n then go rest (n :: acc ) else []
+        in 
+        if (go tl []) = [] then None 
+        else Some (NtmT (implode(go tl [])), rest) )
+     | _ -> None) 
+  | '.' :: rest -> Some (PdT, rest)
+  | c :: _ when is_alpha c ->
+    let (token_chars, rest) = span is_alpha css in
+    Some (TmT (implode token_chars), rest)
+  | _ -> None
+
 
 let tokenize (s : string) : (token list) option =
   let rec go cs =
@@ -119,7 +149,7 @@ let tokenize (s : string) : (token list) option =
       | None -> None
       | Some ts -> Some (t :: ts)
   in go (explode s)
-
+  
 (*
 let _ = assert(next_token (explode "\n ::= q[qpo;laksjd") = Some (EqT, explode " q[qpo;laksjd"))
 let _ = assert(next_token (explode "<asdf>   ...") = Some (NtmT "asdf", explode "   ..."))
@@ -230,7 +260,7 @@ let parse_and_check (s : string) : grammar option =
   | None -> None
   | Some ts ->
     let (g, rest) = parse_grammar ts in
-    if List.is_empty rest
+    if rest = []
     then Some g
     else None
 
