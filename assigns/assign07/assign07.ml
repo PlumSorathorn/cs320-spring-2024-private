@@ -133,8 +133,8 @@ let next_token (cs : char list) : (token * char list) option =
      | _ -> None) 
   | '.' :: rest -> Some (PdT, rest)
   | c :: _ when is_alpha c ->
-    let (token_chars, rest) = span is_alpha css in
-    Some (TmT (implode token_chars), rest)
+    let (term, rest) = span is_alpha css in
+    Some (TmT (implode term), rest)
   | _ -> None
 
 
@@ -207,7 +207,14 @@ type rule = string * sentform
 type grammar = rule list
 
 let expand_leftmost ((nt, sf) : rule) (s : sentform) : sentform =
-  assert false (* TODO *)
+  let rec go ((nt, sf) : rule) (s : sentform) : sentform =
+    match s with 
+    | [] -> []
+    | (NT n) :: rest -> 
+      if n = nt then sf @ rest 
+      else (NT n) :: go (nt, sf) rest
+    | n :: rest -> n :: go (nt,sf) rest
+  in go (nt, sf) s
 
 (* <a> ::= a<a>. *)
 let r = "a", [T "a"; NT "a"]
@@ -247,13 +254,31 @@ let _ = assert (expand_leftmost r [NT "a"; T "b"; NT "a"] = [T "a"; NT "a"; T "b
 *)
 
 let rec parse_sentform (ts : token list) : (sentform * token list) option =
-  assert false (* TODO *)
+  match ts with
+  | NtmT n :: rest -> ( 
+    match parse_sentform rest with
+       | Some (sf, rests) -> Some (NT n :: sf, rests)
+       | None -> Some ([NT n], rest) )
+  | TmT n :: rest -> 
+      (match parse_sentform rest with
+       | Some (sf, rests) -> Some (T n :: sf, rests)
+       | None -> Some ([T n], rest))
+  | _ -> None 
 
 let parse_rule (ts : token list) : (rule * token list) option =
-  assert false (* TODO *)
+  match ts with
+  | NtmT n :: EqT :: rest ->
+      (match parse_sentform rest with
+       | Some (sf, PdT :: rests) -> Some ((n, sf), rests)
+       | _ -> None)
+  | _ -> None
 
 let rec parse_grammar (ts : token list) : grammar * token list =
-  assert false (* TODO *)
+  match parse_rule ts with
+  | Some (rule, rest) ->
+      let rest_grammar, tss = parse_grammar rest 
+    in (rule :: rest_grammar, tss)
+  | None -> ([], ts)
 
 let parse_and_check (s : string) : grammar option =
   match tokenize s with
@@ -263,6 +288,8 @@ let parse_and_check (s : string) : grammar option =
     if rest = []
     then Some g
     else None
+
+
 
 (*
 let _ = assert (parse_sentform [NtmT "a"; TmT "b"; NtmT "a"; PdT; PdT; PdT] = Some ([NT "a"; T "b"; NT "a"], [PdT; PdT; PdT]))
