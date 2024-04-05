@@ -259,6 +259,7 @@ let parse_alt : sentform list parser = (* TODO *)
    rule, but you SHOULD consume whitespace after a rule.
 
 *)
+
 let parse_rule : rule list parser = (* TODO *)
   map2
     (fun nt sfs -> List.map (fun sf -> nt, sf) sfs)
