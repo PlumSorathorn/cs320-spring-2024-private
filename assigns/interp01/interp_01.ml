@@ -120,24 +120,81 @@ type command
   | Num of int             (* num *)
 and program = command list
 
-let parse_ident = fail (* TODO *)
+let parse_ident : ident parser = (* TODO *)
+  let letter = satisfy is_upper_case in 
+  many1 letter >|= implode
+
+
+(* helper to parse num *)
+let parse_number : int parser =
+  let digit = satisfy is_digit >|= fun d -> int_of_char d - int_of_char '0' in
+  many1 digit >>= fun digits ->
+  pure (List.fold_left (fun a b -> a * 10 + b) 0 digits)
+
 
 (* You are not required to used this but it may be useful in
    understanding how to use `rec_parser` *)
-let rec parse_com () =
+let rec parse_com ()  =
   let parse_def =
     map2
       (fun id p -> Def (id, p))
       (keyword "def" >> parse_ident << ws)
       (parse_prog_rec () << char ';')
-  in parse_def <|> fail (* TODO *)
+  in parse_def <|> (* TODO *)
+  let parse_if = 
+    map
+      (fun p -> If (p))
+      ((keyword "?") >> parse_prog_rec () << char ';')
+  in parse_if <|> 
+  let parse_call = 
+    (char '#' >> parse_ident) >|= fun id -> Call id
+  in parse_call <|>
+  let parse_bind = 
+    (keyword "|>" >> parse_ident) >|= fun id -> Bind id
+  in parse_bind <|>
+  let parse_eq = 
+    (char '=') >|= fun eq -> Eq
+  in parse_eq <|> 
+  let parse_lt = 
+    (char '<') >|= fun lt -> Lt
+  in parse_lt <|>
+  let parse_div = 
+    (char '/') >|= fun div -> Div
+  in parse_div <|>
+  let parse_mul = 
+    (char '*') >|= fun mul -> Mul
+  in parse_mul <|>
+  let parse_sub = 
+    (char '-') >|= fun sub -> Sub
+  in parse_sub <|>
+  let parse_add = 
+    (char '+') >|= fun add -> Add
+  in parse_add <|> 
+  let parse_trace = 
+    (char '.') >|= fun trace -> Trace
+  in parse_trace <|>
+  let parse_dup = 
+    (keyword "dup") >|= fun dup -> Dup
+  in parse_dup <|>
+  let parse_swap = 
+    (keyword "swap") >|= fun swap -> Swap
+  in parse_swap <|> 
+  let parse_drop = 
+    (keyword "drop") >|= fun drop -> Drop
+  in parse_drop <|>
+  let parse_num = 
+    (parse_number << ws) >|= fun num -> Num num
+  in parse_num <|> 
+  let parse_id = 
+    (parse_ident << ws >|= fun id -> Ident id)
+  in parse_id
 and parse_prog_rec () =
   many ((rec_parser parse_com) << ws)
 
-let parse_prog = assert false (* TODO *)
+let parse_prog = (* TODO *)
+  parse (ws >> parse_prog_rec () << ws)
 
 (* A VERY SMALL TEST SET *)
-(*
 let test = parse_prog "drop"
 let out = Some [Drop]
 let _ = assert (test = out)
@@ -176,7 +233,7 @@ let out = Some
     ;  Bind "X"
     ]
 let _ = assert (test = out)
-*)
+
 
 (* EVALUATION *)
 
