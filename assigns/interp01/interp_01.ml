@@ -128,7 +128,7 @@ let parse_ident : ident parser = (* TODO *)
 (* helper to parse num *)
 let parse_number : int parser =
   let digit = satisfy is_digit >|= fun d -> int_of_char d - int_of_char '0' in
-  many1 digit >>= fun digits ->
+  many1 digit >>= fun (digits : int list) ->
   pure (List.fold_left (fun a b -> a * 10 + b) 0 digits)
 
 
@@ -244,10 +244,128 @@ type value
 type env = (ident * value) list
 type trace = string list
 
-let update_env = assert false (* TODO *)
-let fetch_env = assert false (* TODO *)
-let eval_prog = assert false (* TODO *)
-let interp = assert false (* TODO *)
+let rec update_env e x v =
+  match e with
+  | [] -> [(x, v)]
+  | (key, value) :: xs -> 
+    if key = x 
+      then (x, v) :: xs 
+    else 
+      (key, value) :: update_env xs x v
+
+let rec fetch_env e x =
+  match e with
+  | [] -> None
+  | (key, value) :: xs -> 
+    if key = x 
+      then Some value
+    else 
+      fetch_env xs x
+
+let rec eval_prog s (e : (ident * value) list) t p : trace =
+  match p with
+  | [] -> t
+  | Drop :: p_rest -> (
+    match s with 
+    | _ :: s_rest -> eval_prog (s_rest) e t p_rest
+    | [] -> "panic : drop" :: t
+    )
+  | Swap :: p_rest -> 
+    if List.length(s) < 2 then ("panic : swap" :: t)
+    else 
+      let x = List.hd s in 
+      let y = List.hd (List.tl s) in 
+      eval_prog (y :: x :: (List.tl (List.tl s))) e t p_rest
+  | Dup :: p_rest -> (
+    match s with 
+    | first :: _ -> eval_prog (first :: s) e t p_rest
+    | [] -> "panic : dup" :: t
+    )
+  | Trace :: p_rest -> ( 
+    match s with 
+    | first :: s_rest -> eval_prog s_rest e ((string_of_int first) :: t) p_rest
+    | [] -> "panic : trace" :: t 
+    )
+  | Num n :: p_rest -> eval_prog (n :: s) e t p_rest
+  | Add :: p_rest -> (
+    match s with 
+    | x :: y :: s_rest -> eval_prog ((x + y) :: s_rest) e t p_rest
+    | _ -> "panic : add" :: t
+    )
+  | Sub :: p_rest -> (
+    match s with 
+    | x :: y :: s_rest -> eval_prog ((x - y) :: s_rest) e t p_rest
+    | _ -> "panic : sub" :: t
+    )
+  | Mul :: p_rest -> (
+    match s with 
+    | x :: y :: s_rest -> eval_prog ((x * y) :: s_rest) e t p_rest
+    | _ -> "panic : mul" :: t
+    )
+  | Div :: p_rest -> (
+    match s with 
+    | x :: y :: s_rest -> 
+      if y = 0 
+        then "panic : div" :: t 
+      else 
+        eval_prog ((x / y) :: s_rest) e t p_rest
+    | _ -> "panic : div less than 2" :: t
+    )
+  | Lt :: p_rest -> (
+    match s with 
+    | x :: y :: s_rest -> 
+      if x < y then 
+        eval_prog (1 :: s_rest) e t p_rest
+      else 
+        eval_prog (0 :: s_rest) e t p_rest
+    | _ -> "panic : lt" :: t
+    )
+  | Eq :: p_rest -> (
+    match s with 
+    | x :: y :: s_rest -> 
+      if x = y then 
+        eval_prog (1 :: s_rest) e t p_rest
+      else 
+        eval_prog (0 :: s_rest) e t p_rest
+    | _ -> "panic : eq" :: t
+    )
+  | Bind id :: p_rest -> (
+    match s with
+    | n :: s_rest -> eval_prog s_rest (update_env e id (Num n)) t p_rest
+    | _ -> "panic : bind" :: t
+    )
+  | Ident id :: p_rest -> (
+    match (fetch_env e id) with 
+    | Some v -> ( 
+      match v with 
+      | Num n -> eval_prog (n :: s) e t p_rest
+      | _ -> "panic : ident not num" :: t
+      )
+    | None -> "panic : ident none" :: t
+    )
+  | Def (id, q) :: p_rest -> eval_prog s (update_env e id (Prog q)) t p_rest
+  | Call id :: p_rest -> (
+      match (fetch_env e id) with 
+      | Some v -> ( 
+        match v with 
+        | Prog n -> eval_prog s e t (n @ p_rest)
+        | _ -> "panic : call not prog" :: t
+        )
+      | None -> "panic : call none"  :: t
+      )
+  | If q :: p_rest -> (
+    match s with
+    | n :: s_rest ->
+      if n <> 0 
+        then eval_prog s_rest e t (q @ p_rest)
+      else eval_prog s_rest e t p_rest
+  | _ -> "panic : if" :: t
+  )
+
+let interp id : trace option =
+  match parse_prog id with
+  | Some p -> Some (eval_prog [] [] [] p)
+  | None -> None
 
 (* END OF PROJECT CODE *)
 
@@ -264,7 +382,7 @@ let print_trace t =
       go t
   in go (List.rev t)
 
-(*
+
 let main () =
   let input =
     let rec get_input s =
@@ -279,4 +397,4 @@ let main () =
   | Some t -> print_trace t
 
 let _ = main ()
-*)
+
