@@ -307,10 +307,10 @@ let rec fetch_env (e : env) (x : ident) = (* TODO *)
 
 let rec update_env (e : env) (x : ident) (v : value) : env = (* TODO *)
   match e with
-  | Global b -> Global ((x, v) :: b)
+  | Global b -> Global ((x, v) :: List.remove_assoc x b)
   | Local (r, outer_env) ->
     if List.mem_assoc x r.local then 
-      Local ({r with local = (x, v) :: r.local }, outer_env)
+      Local ({r with local = (x, v) :: List.remove_assoc x r.local }, outer_env)
   else
     Local (r, update_env outer_env x v)
     
@@ -380,7 +380,7 @@ let eval_step (c : stack * env * trace * program) =
   | _ :: _, _, _, If (_, _) :: _ -> panic c "type error (? on non-booleans)"
   | [], _, _, If (_, _) :: _ -> panic c "stack underflow (? on empty)"
   (* While *)
-  | s, e, t, While(m, n) :: p -> s, e, t, m @ (If(n, []) :: p)
+  | s, e, t, While(m, n) :: p -> s, e, t, (m @ [If (n @ [While (m,n)], [])]) @ p
   (* Fetch *)
   | s, e, t, Fetch n :: p -> (
     match (fetch_env e n) with 
@@ -398,7 +398,9 @@ let eval_step (c : stack * env * trace * program) =
   | [], _, _, Call :: _ -> panic c "stack underflow (call on empty)"
   (* Return *)
   | Clos {def_id; captured; prog} :: [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p when def_id = id -> 
-    let merged_b = captured @ local in 
+    let merged_b = List.fold_left (fun acc (key, value) -> 
+      let acc = List.remove_assoc key acc in 
+      (key, value) :: acc) captured local in 
     Clos {def_id = id; captured = merged_b; prog = prog} :: [], e, t, return_prog
   | Clos {def_id; captured; prog} as v :: [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p when def_id <> id ->
     v :: [], e, t, return_prog
@@ -410,7 +412,14 @@ let eval_step (c : stack * env * trace * program) =
   | s, Global (_), t, Return :: p -> panic c "return error (global)"
   (* Function *)
   | s, e, t, Fun (m) :: p -> 
-    let closure = Clos {def_id = local_id e; captured = []; prog = m} in 
+    let closure =
+      let captured = 
+        match e with 
+        | Global b -> b 
+        | Local (record, _) -> record.local 
+      in 
+      Clos {def_id = local_id e; captured = captured; prog = m}
+    in
     closure :: s, e, t, p
   (* Debug *)
   | s, e, t, Debug m :: p ->
