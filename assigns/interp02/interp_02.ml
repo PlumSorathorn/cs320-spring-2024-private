@@ -291,28 +291,35 @@ let parse_prog = parse (ws >> parse_prog_rec ())
 (* FETCHING AND UPDATING *)
 
 (* fetch the value of `x` in the environment `e` *)
-let rec fetch_env (e : env) (x : ident) = (* TODO *)
+let fetch_env (e : env) (x : ident) = (* TODO *)
   let rec find_binding (bs : bindings) (x : ident) : value option = 
     match bs with 
-    | [] -> None 
-    | (id, value) :: rest -> if id = x then Some value 
-    else find_binding rest x
+    | [] -> None
+    | (id, value) :: rest -> 
+      if id = x then Some value 
+      else find_binding rest x
   in
-  match e with 
-  | Global b -> find_binding b x
-  | Local (r, outer_env) ->
-    match find_binding r.local x with 
-    | Some value -> Some value 
-    | None -> fetch_env outer_env x
+  let rec find_stack (e : env) (stack_id : int) =
+    match e with 
+    | Global b -> find_binding b x
+    | Local (r, outer_env) ->
+        if r.id = stack_id then find_binding r.local x 
+        else find_stack outer_env stack_id
+  in
+  let rec fetching (es : env) =
+    match es with
+    | Global b -> find_binding b x
+    | Local (r, outer_env) ->
+      (match find_binding r.local x with 
+      | Some value -> Some value
+      | None -> find_stack outer_env r.called_def_id)
+  in
+  fetching e
 
 let rec update_env (e : env) (x : ident) (v : value) : env = (* TODO *)
   match e with
-  | Global b -> Global ((x, v) :: List.remove_assoc x b)
-  | Local (r, outer_env) ->
-    if List.mem_assoc x r.local then 
-      Local ({r with local = (x, v) :: List.remove_assoc x r.local }, outer_env)
-  else
-    Local (r, update_env outer_env x v)
+  | Global b -> Global ((x, v) :: b)
+  | Local (r, outer_env) -> Local ({r with local = (x, v) :: r.local}, outer_env)
     
 (* EVALUTION *)
 
@@ -398,13 +405,15 @@ let eval_step (c : stack * env * trace * program) =
   | [], _, _, Call :: _ -> panic c "stack underflow (call on empty)"
   (* Return *)
   | Clos {def_id; captured; prog} :: [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p when def_id = id -> 
-    let merged_b = List.fold_left (fun acc (key, value) -> 
-      let acc = List.remove_assoc key acc in 
-      (key, value) :: acc) captured local in 
+    let merged_b = 
+      List.fold_left (fun acc (key, value) -> 
+        let acc = List.remove_assoc key acc in 
+        (key, value) :: acc) 
+      captured local in 
     Clos {def_id = id; captured = merged_b; prog = prog} :: [], e, t, return_prog
-  | Clos {def_id; captured; prog} as v :: [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p when def_id <> id ->
-    v :: [], e, t, return_prog
-  | x :: [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p -> x :: [], e, t, return_prog
+  | Clos {def_id; captured; prog} as v :: [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p when def_id <> id -> v :: [], e, t, return_prog
+  | Const v :: [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p -> 
+    Const v :: [], e, t, return_prog
   | [], Local ({id; local; called_def_id; return_prog}, e), t, Return :: p -> [], e, t, return_prog
   | [], Local ({id; local; called_def_id; return_prog}, e), t, [] -> [], e, t, return_prog
   | x :: y :: s, Local ({id; local; called_def_id; return_prog}, e), t, Return :: p -> panic c "return error (more than one value)"
@@ -423,8 +432,7 @@ let eval_step (c : stack * env * trace * program) =
     closure :: s, e, t, p
   (* Debug *)
   | s, e, t, Debug m :: p ->
-    let _ = print_endline(m) in 
-    s, e, t, p
+    s, e, m :: t, p
   | _ -> assert false
 
 let rec eval c =
