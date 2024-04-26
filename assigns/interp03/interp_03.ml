@@ -510,9 +510,151 @@ type lexpr
   | App of lexpr * lexpr
   | Trace of lexpr
 
-let desugar (p : top_prog) : lexpr = Unit (* TODO *)
-let translate (e : lexpr) : stack_prog = [] (* TODO *)
-let serialize (p : stack_prog) : string = "" (* TODO *)
+let rec desugar (p : top_prog) : lexpr = (* TODO *)
+  match p with 
+  | [] -> Unit 
+  | (id, id_list, e) :: rest ->
+    let e_desugared = desugar_e e in 
+    let rest_desugared = desugar rest in 
+    (
+    match id_list with 
+    | [] -> e_desugared 
+    | id_head :: [] -> Fun (id_head, e_desugared)
+    | id_head :: id_rest ->
+      List.fold_right (fun id_head body -> Fun(id_head, body)) id_rest (Fun (id_head, rest_desugared))
+    )
+and desugar_e (e : expr) : lexpr = 
+  match e with 
+  | Fun (head, rest) -> 
+    (
+    match head with 
+    | [] -> desugar_e rest 
+    | id_list :: [] -> Fun (id_list, desugar_e rest )
+    | id_head :: id_rest ->
+      List.fold_right 
+        (fun id_head body -> Fun(id_head, body)) 
+        id_rest 
+        (Fun (id_head, desugar_e rest))
+    )
+  | App (e1, e2) -> App (desugar_e e1, desugar_e e2)
+  | Trace (e) -> Trace (desugar_e e)
+  | Ife (if_e, then_e, else_e) ->
+    Ife (desugar_e if_e, desugar_e then_e, desugar_e else_e)
+  | Uop (uop, e) -> Uop (uop, desugar_e e)
+  | Bop (bop, e1, e2) -> Bop(bop, desugar_e e1, desugar_e e2)
+  | Var id -> Var id 
+  | Unit -> Unit 
+  | Bool b -> Bool b 
+  | Num n -> Num n 
+  | Let (id, id_list, e1, e2) -> App (desugar ((id, id_list, e2) :: []), desugar_e e1)
+
+
+let rec translate (e : lexpr) : stack_prog = (* TODO *)
+match e with
+| Num n -> (Push (Num n)) :: []
+| Bool b -> (Push (Bool b)) :: []
+| Unit -> (Push (Unit)) :: []
+| Var id -> (Lookup id) :: []
+| Uop (uop, e) ->
+    let translated_e = translate e in
+    translated_e @ (translate_unop translated_e uop)
+| Bop (bop, e1, e2) ->
+    let translated_e1 = translate e1 in
+    let translated_e2 = translate e2 in
+    translated_e1 @ translated_e2 @ (translate_bop translated_e1 translated_e2 bop)
+| Ife (if_e, then_e, else_e) ->
+    let translated_if_e = translate if_e in
+    let translated_then_e = translate then_e in
+    let translated_else_e = translate else_e in
+    translated_if_e @ [If (translated_then_e, translated_else_e)]
+| Fun (id, e) ->
+    [Fun (id, translate e)]
+| App (e1, e2) ->
+    let translated_e1 = translate e1 in
+    let translated_e2 = translate e2 in
+    translated_e2 @ translated_e1 @ (Call :: [])
+| Trace e ->
+    let translated_e = translate e in
+    translated_e @ (Trace :: [])
+and translate_unop sp op =
+match op with
+| Neg -> [Push (Num (-1)); Mul]
+| Not -> ( 
+  match sp with 
+  | Push (Bool true) :: rest -> Push (Bool false) :: []
+  | _ -> Push (Bool true) :: []
+)
+and translate_bop sp1 sp2 op =
+match op with
+| Add -> Add :: []
+| Sub -> Sub :: []
+| Mul -> Mul :: []
+| Div -> Div :: []
+| And -> ( 
+  match sp1, sp2 with 
+  | Push (Bool true) :: rest1, Push (Bool true) :: rest2 -> Push (Bool true) :: []
+  | _ -> Push (Bool false) :: []
+)
+| Or -> ( 
+  match sp1, sp2 with 
+  | Push (Bool true) :: rest1, Push (Bool true) :: rest2 -> Push (Bool true) :: []
+  | Push (Bool true) :: rest1, Push (Bool false) :: rest2 -> Push (Bool true) :: []
+  | Push (Bool false) :: rest1, Push (Bool true) :: rest2 -> Push (Bool true) :: []
+  | _ -> Push (Bool false) :: []
+)
+| Lt -> Lt :: []
+| Lte -> ( 
+  match sp1, sp2 with 
+  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
+    if m <= n then Push (Bool true) :: []
+    else Push (Bool false) :: []
+  | _ -> Push (Bool false) :: []
+)
+| Gt -> [Swap; Lt]
+| Gte -> ( 
+  match sp1, sp2 with 
+  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
+    if m >= n then Push (Bool true) :: []
+    else Push (Bool false) :: []
+  | _ -> Push (Bool false) :: []
+)
+| Eq -> ( 
+  match sp1, sp2 with 
+  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
+    if m = n then Push (Bool true) :: []
+    else Push (Bool false) :: []
+  | _ -> Push (Bool false) :: []
+)
+| Neq -> ( 
+  match sp1, sp2 with 
+  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
+    if m <> n then Push (Bool true) :: []
+    else Push (Bool false) :: []
+  | _ -> Push (Bool false) :: []
+)
+let rec serialize (p : stack_prog) : string =  (* TODO *)
+  String.concat "\n" (List.map (function
+  | Push v -> "push " ^ (
+    match v with
+    | Num n -> string_of_int n
+    | Bool b -> string_of_bool b
+    | Unit -> "unit"
+    )
+  | Swap -> "swap"
+  | Trace -> "trace"
+  | Add -> "add"
+  | Sub -> "sub"
+  | Mul -> "mul"
+  | Div -> "div"
+  | Lt -> "lt"
+  | If (e1, e2) -> "if " ^ serialize e1 ^ " else " ^ serialize e2 ^ " end"
+  | Fun (id, e) -> "fun " ^ (String.concat " " (id :: [])) ^ " begin " ^ serialize e ^ " end"
+  | Call -> "call"
+  | Return -> "return"
+  | Assign v -> "assign " ^ v
+  | Lookup v -> "lookup " ^ v
+  ) 
+  p)
 
 let compile (s : string) : string option =
   match parse_top_prog s with
