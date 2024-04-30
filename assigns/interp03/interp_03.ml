@@ -557,10 +557,17 @@ and desugar_e (e : expr) : lexpr =
     App (Fun (id, desugar_e e2), func)
 
 
-(* captialize variables *)
-let cap_var var = 
-  let capitalized = String.uppercase_ascii var
-  in String.map (fun c -> if c = '_' then 'X' else c) capitalized
+(* captialize and modify variables *)
+let modify_var var = 
+  let capitalized = String.uppercase_ascii var in 
+  let modified = explode capitalized in 
+  let rec go s acc = 
+    match s with 
+    | [] -> acc 
+    | '_' :: rest -> go rest (acc @ ['B'] @ ['K'])
+    | n :: rest -> go rest (acc @ ['A'] @ [n])
+  in implode (go modified [])
+
 
 let rec translate (e : lexpr) : stack_prog = (* TODO *)
 match e with
@@ -659,13 +666,13 @@ let rec serialize (p : stack_prog) : string =  (* TODO *)
       | Return -> "return"
       | Assign id -> (
         match id with 
-        | "_" -> "assign " ^ "B" ^ "K"
-        | _ -> "assign " ^ "A" ^ cap_var id
+        | "_" -> "assign " ^ modify_var id 
+        | _ -> "assign " ^ "A" ^ modify_var id
       )
       | Lookup id -> (
         match id with 
-        | "_" -> "lookup " ^ "B" ^ "K"
-        | _ -> "lookup " ^ "A" ^ cap_var id
+        | "_" -> "lookup " ^ modify_var id 
+        | _ -> "lookup " ^ "A" ^ modify_var id
       )
     in
     cmd_str ^ "\n" ^ (serialize rest)
