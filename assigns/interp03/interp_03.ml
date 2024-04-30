@@ -514,28 +514,28 @@ let rec desugar (p : top_prog) : lexpr = (* TODO *)
   match p with 
   | [] -> Unit 
   | (id, id_list, e) :: rest ->
-    let e_desugared = desugar_e e in 
-    let rest_desugared = desugar rest in 
-    (
-    match id_list with 
-    | [] -> e_desugared 
-    | id_head :: [] -> Fun (id_head, e_desugared)
-    | id_head :: id_rest ->
-      List.fold_right (fun id_head body -> Fun(id_head, body)) id_rest (Fun (id_head, rest_desugared))
-    )
+    let desugared_e = desugar_e e in
+    let desugared_rest = 
+      match rest with 
+      | [] -> Unit 
+      | _ -> desugar rest in 
+    let func = 
+      match id_list with 
+      | [] -> desugared_e
+      | _ ->
+        List.fold_right 
+        (fun param acc -> Fun (param, acc)) 
+        id_list 
+        desugared_e 
+      in
+      App (Fun (id, desugared_rest), func)
 and desugar_e (e : expr) : lexpr = 
   match e with 
-  | Fun (head, rest) -> 
-    (
-    match head with 
-    | [] -> desugar_e rest 
-    | id_list :: [] -> Fun (id_list, desugar_e rest )
-    | id_head :: id_rest ->
-      List.fold_right 
-        (fun id_head body -> Fun(id_head, body)) 
-        id_rest 
-        (Fun (id_head, desugar_e rest))
-    )
+  | Fun (id_list, es) -> 
+    List.fold_right 
+      (fun n acc -> Fun (n, acc)) 
+      id_list 
+      (desugar_e es)
   | App (e1, e2) -> App (desugar_e e1, desugar_e e2)
   | Trace (e) -> Trace (desugar_e e)
   | Ife (if_e, then_e, else_e) ->
@@ -545,116 +545,133 @@ and desugar_e (e : expr) : lexpr =
   | Var id -> Var id 
   | Unit -> Unit 
   | Bool b -> Bool b 
-  | Num n -> Num n 
-  | Let (id, id_list, e1, e2) -> App (desugar ((id, id_list, e2) :: []), desugar_e e1)
+  | Num n -> Num n
+  | Let (id, id_list, e1, e2) -> 
+    let desugared_e1 = desugar_e e1 in
+    let func = 
+      List.fold_right 
+        (fun n acc -> Fun (n, acc))
+        id_list 
+        desugared_e1 
+      in
+    App (Fun (id, desugar_e e2), func)
 
+
+(* captialize variables *)
+let cap_var var = 
+  let capitalized = String.uppercase_ascii var
+  in String.map (fun c -> if c = '_' then 'X' else c) capitalized
 
 let rec translate (e : lexpr) : stack_prog = (* TODO *)
 match e with
-| Num n -> (Push (Num n)) :: []
-| Bool b -> (Push (Bool b)) :: []
-| Unit -> (Push (Unit)) :: []
-| Var id -> (Lookup id) :: []
-| Uop (uop, e) ->
-    let translated_e = translate e in
-    translated_e @ (translate_unop translated_e uop)
+| Num n -> [(Push (Num n))]
+| Bool b -> [(Push (Bool b))]
+| Unit -> [(Push (Unit))]
+| Var id -> [(Lookup (id))]
+| Uop (uop, e1) ->
+    let translated_e1 = translate e1 in
+    (translate_uop uop translated_e1)
 | Bop (bop, e1, e2) ->
     let translated_e1 = translate e1 in
     let translated_e2 = translate e2 in
-    translated_e1 @ translated_e2 @ (translate_bop translated_e1 translated_e2 bop)
+    let translated_bop = translate_bop bop translated_e1 translated_e2 in 
+    translated_bop
 | Ife (if_e, then_e, else_e) ->
     let translated_if_e = translate if_e in
     let translated_then_e = translate then_e in
     let translated_else_e = translate else_e in
     translated_if_e @ [If (translated_then_e, translated_else_e)]
-| Fun (id, e) ->
-    [Fun (id, translate e)]
+| Fun (id, e1) -> 
+  let translated_e1 = translate e1 @ [Swap; Return] in
+  if id = "_" then
+    [Fun ("C",[Swap; Assign (id)] @ translated_e1)] 
+  else
+    [Fun ("C" , [Swap; Assign (id)] @ translated_e1)]
 | App (e1, e2) ->
     let translated_e1 = translate e1 in
     let translated_e2 = translate e2 in
-    translated_e2 @ translated_e1 @ (Call :: [])
-| Trace e ->
-    let translated_e = translate e in
-    translated_e @ (Trace :: [])
-and translate_unop sp op =
+    translated_e2 @ translated_e1 @ [Call]
+| Trace e1 ->
+    let translated_e = translate e1 in
+    translated_e @ [Trace; Push Unit]
+and translate_uop op e1 : stack_prog =
+  let check_if_num1 = e1 @ [Push (Num (1)); Mul] in 
+  let check_if_bool1 = e1 @ [If ([Push (Bool (true))], [Push (Bool (false))])] in 
+  match op with
+  | Neg -> 
+    check_if_num1 @ [Assign "TEMPORARYZ"; Lookup "TEMPORARYZ"; Lookup "TEMPORARYZ"; Push (Num (2)); Mul; Swap; Sub]
+  | Not -> check_if_bool1 @ [If ([Push (Bool (false))], [Push (Bool (true))])]
+
+and translate_bop op e1 e2 =
+  let check_if_num = e2 @ [Push (Num (1)); Mul] @ e1 @ [Push (Num (1)); Mul] in 
+  let check_if_num2 = e2 @ [Push (Num (1)); Mul] in 
+  let check_if_num1 = e1 @ [Push (Num (1)); Mul]  in 
+  let check_if_bool1 = e1 @ [If ([Push (Bool (true))], [Push (Bool (false))])] in 
+  let check_if_bool2 = e2 @ [If ([Push (Bool (true))], [Push (Bool (false))])] in 
 match op with
-| Neg -> [Push (Num (-1)); Mul]
-| Not -> ( 
-  match sp with 
-  | Push (Bool true) :: rest -> Push (Bool false) :: []
-  | _ -> Push (Bool true) :: []
-)
-and translate_bop sp1 sp2 op =
-match op with
-| Add -> Add :: []
-| Sub -> Sub :: []
-| Mul -> Mul :: []
-| Div -> Div :: []
-| And -> ( 
-  match sp1, sp2 with 
-  | Push (Bool true) :: rest1, Push (Bool true) :: rest2 -> Push (Bool true) :: []
-  | _ -> Push (Bool false) :: []
-)
-| Or -> ( 
-  match sp1, sp2 with 
-  | Push (Bool true) :: rest1, Push (Bool true) :: rest2 -> Push (Bool true) :: []
-  | Push (Bool true) :: rest1, Push (Bool false) :: rest2 -> Push (Bool true) :: []
-  | Push (Bool false) :: rest1, Push (Bool true) :: rest2 -> Push (Bool true) :: []
-  | _ -> Push (Bool false) :: []
-)
-| Lt -> Lt :: []
-| Lte -> ( 
-  match sp1, sp2 with 
-  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
-    if m <= n then Push (Bool true) :: []
-    else Push (Bool false) :: []
-  | _ -> Push (Bool false) :: []
-)
-| Gt -> [Swap; Lt]
-| Gte -> ( 
-  match sp1, sp2 with 
-  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
-    if m >= n then Push (Bool true) :: []
-    else Push (Bool false) :: []
-  | _ -> Push (Bool false) :: []
-)
-| Eq -> ( 
-  match sp1, sp2 with 
-  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
-    if m = n then Push (Bool true) :: []
-    else Push (Bool false) :: []
-  | _ -> Push (Bool false) :: []
-)
-| Neq -> ( 
-  match sp1, sp2 with 
-  | Push (Num n) :: rest1, Push (Num m) :: rest2 -> 
-    if m <> n then Push (Bool true) :: []
-    else Push (Bool false) :: []
-  | _ -> Push (Bool false) :: []
-)
+(* add, sub, mul, div *)
+| Add -> check_if_num @ [Add]
+| Sub -> check_if_num @ [Sub]
+| Mul -> check_if_num @ [Mul]
+| Div -> check_if_num @ [Div]
+(* and, or *)
+| And -> check_if_bool1 @ 
+    (* If bool1 is true, bool2 also has to be true *)
+    [If ( (check_if_bool2) , ([Push (Bool (false))]))]
+| Or -> check_if_bool1 @ 
+    (* If bool1 is true, just push true. Else, check bool2 *)
+    [If ( [Push (Bool (true))] , (check_if_bool2))]
+(* lt, lte, gt, gte, eq, neq *)
+| Lt ->  check_if_num @ [Lt]
+| Lte -> check_if_num2 @ [Assign "TEMPORARYX";] @ check_if_num1 @ [Push (Num (1)); Swap; Sub; Lookup "TEMPORARYX"; Swap; Lt]
+| Gt -> check_if_num @ [Swap; Lt]
+| Gte -> check_if_num2 @ [Push (Num (1)); Swap; Sub; Assign "TEMPORARYX";] @ check_if_num1 @ [Lookup "TEMPORARYX"; Lt]
+| Eq -> check_if_num2 @ [Assign "TEMPORARYX";] @ check_if_num1 @ [Assign "TEMPORARYY"]
+  @ [Lookup "TEMPORARYX"; Lookup "TEMPORARYY"; Lt;] @ 
+  [If ([Push (Bool (false))],[Lookup "TEMPORARYY"; Lookup "TEMPORARYX"; Lt;
+  If ([Push (Bool (false))], [Push (Bool (true))])])]
+| Neq -> check_if_num2 @ [Assign "TEMPORARYX";] @ check_if_num1 @ [Assign "TEMPORARYY"]
+  @ [Lookup "TEMPORARYX"; Lookup "TEMPORARYY"; Lt;] @ 
+  [If ([Push (Bool (true))],[Lookup "TEMPORARYY"; Lookup "TEMPORARYX"; Lt])]
+
 let rec serialize (p : stack_prog) : string =  (* TODO *)
-  String.concat "\n" (List.map (function
-  | Push v -> "push " ^ (
-    match v with
-    | Num n -> string_of_int n
-    | Bool b -> string_of_bool b
-    | Unit -> "unit"
-    )
-  | Swap -> "swap"
-  | Trace -> "trace"
-  | Add -> "add"
-  | Sub -> "sub"
-  | Mul -> "mul"
-  | Div -> "div"
-  | Lt -> "lt"
-  | If (e1, e2) -> "if " ^ serialize e1 ^ " else " ^ serialize e2 ^ " end"
-  | Fun (id, e) -> "fun " ^ (String.concat " " (id :: [])) ^ " begin " ^ serialize e ^ " end"
-  | Call -> "call"
-  | Return -> "return"
-  | Assign v -> "assign " ^ v
-  | Lookup v -> "lookup " ^ v
-  ) 
-  p)
+  match p with
+  | [] -> ""
+  | n :: rest ->
+    let cmd_str = 
+      match n with
+      | Push v -> "push " ^ (
+        match v with
+        | Num n -> string_of_int n
+        | Bool b -> string_of_bool b
+        | Unit -> "unit"
+        )
+      | Swap -> "swap"
+      | Trace -> "trace"
+      | Add -> "add"
+      | Sub -> "sub"
+      | Mul -> "mul"
+      | Div -> "div"
+      | Lt -> "lt"
+      | If (prog1, prog2) -> "if\n" ^ serialize prog1 ^ "else\n" ^ serialize prog2 ^ "end"
+      | Fun (id, e) -> "fun " ^ id ^ "\nbegin\n" ^ serialize e ^ "end"
+      | Call -> "call"
+      | Return -> "return"
+      | Assign id -> (
+        match id with 
+        | "_" -> "assign " ^ "B" ^ "K"
+        | _ -> "assign " ^ "A" ^ cap_var id
+      )
+      | Lookup id -> (
+        match id with 
+        | "_" -> "lookup " ^ "B" ^ "K"
+        | _ -> "lookup " ^ "A" ^ cap_var id
+      )
+    in
+    cmd_str ^ "\n" ^ (serialize rest)
+  and indent str = 
+  let lines = String.split_on_char '\n' str in
+  String.concat "\n" (List.map (fun line -> "  " ^ line) lines)
 
 let compile (s : string) : string option =
   match parse_top_prog s with
