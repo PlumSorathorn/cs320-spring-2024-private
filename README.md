@@ -67,4 +67,4 @@ When you have finished working on an assignment, execute the following command t
 git commit -m "a commit message"
 ```
 
-In order to submit your assignments, first push solution to your private repo on GitHub using `git push`. On Gradescope's assignment submission page, choose GitHub as your submission method and select your private repo from the dropdown menu.
+In order to submit your assignments, first push solution to your private repo on GitHub using `git push`. On Gradescope's assignment submission page, choose GitHub as your submission method and select your private repo from the dropdown menu. 
