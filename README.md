@@ -1,70 +1,54 @@
-# BU CAS CS320 Concepts of Programming Languages.
+# CS320 Final Project: MiniML Interpreter
 
-This is public repository used for publishing assignments and lecture materials.
+This repository consists of multiple assignments I completed over the duration of the course **CS320**.  
+The final project (within assigns/interp03) is an interpreter for a functional programming language with the following features:
 
-## Mirroring this repository
+---
 
-You will first create a private repository that mirrors this one. The following instructions describe how to do so.
+## Overview
 
-### Step 1:
+The project is divided into three main parts:
 
-Please clone the public class repository:
-```
-git clone https://github.com/qcfu-bu/cs320-spring-2024
-```
+### 1. Parser Combinator Library
+- Provides reusable combinators for building parsers.
+- Inspired by monadic parser combinators from functional languages like Haskell and OCaml.
+- Supports:
+  - Sequencing (`>>=`)
+  - Choice (`<|>`)
+  - Repetition (`many`, `many1`)
+  - Optional parsing and more.
 
-### Step 2:
+---
 
-Please create a *private* repository of your own on GitHub.  
-For instance, the following one is created for my own use:
+### 2. High-Level Language Parser
 
-https://github.com/qcfu-bu/cs320-spring-2024-private
+Parses a small ML-style language with support for:
 
-Then mirror-push the class repo into your own private repo:
-```
-git -C ./cs320-spring-2024 push --mirror https://github.com/qcfu-bu/cs320-spring-2024-private
-```
+1. Variables, integers, booleans, and unit `()`
+2. Arithmetic and logical expressions
+3. Function definitions and applications
+4. Let bindings and nested scopes
+5. Control flow: `if ... then ... else`
+6. Unary and binary operators
+7. Tracing (`trace`) for debugging
 
-### Step 3:
+---
 
-Clone your private repository. All the work you do for this course should be done in your private repository.
-```
-git clone https://github.com/qcfu-bu/cs320-spring-2024-private
-```
+### 3. Stack-Based Intermediate Representation
 
-### Step 4:
+Defines a minimal stack-based language with:
 
-Add the *public repo* as a remote for your private repo.
-```
-git -C ./cs320-spring-2024-private remote add upstream https://github.com/qcfu-bu/cs320-spring-2024
-```
+1. Constants, arithmetic/logical operations  
+2. Function closures and applications  
+3. Variable lookup and assignment  
+4. Conditional branching  
+5. Stack manipulation operations (e.g. `Swap`, `Return`, `Trace`)
 
-### Step 5 (Optional):
-At this point, you may delete the cloned public repo as it is no longer needed.
-```
-rm -rf cs320-spring-2024
-```
+---
 
+### How to Use
 
-## Syncing your private mirror with the public repository
-
-Remember to sync with the class repo frequently. To sync with the public repo, run the following commands inside your `cs320-spring-2024-private` directory.
-```
-git fetch upstream
-git merge upstream/main main
-```
-
-Updates made to the public repository will now be available on your computer. However, these changes will not appear on your GitHub yet. Run the following command to upload these changes to your GitHub.
-```
-git push
-```
-
-## Committing and submitting assingments
-
-When you have finished working on an assignment, execute the following command to commit your changes. Committing serves as a checkpoint that allows git to track changes to your repository. A commit message (the string following `-m`) is usually included with a commit to describe the changes made.
-
-```
-git commit -m "a commit message"
-```
-
-In order to submit your assignments, first push solution to your private repo on GitHub using `git push`. On Gradescope's assignment submission page, choose GitHub as your submission method and select your private repo from the dropdown menu. 
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/cs320-final-project.git
+   cd cs320-final-project
